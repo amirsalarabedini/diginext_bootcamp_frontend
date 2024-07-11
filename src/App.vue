@@ -1,10 +1,10 @@
 <template>
   <div id="app">
-    <div class="section">
-      <p>Profiles List</p>
-      <div class="flex-row">
+    <div class="section profiles-section">
+      <h1>Profiles List</h1>
+      <div class="search-bar">
         <label class="label" for="filter">Find profile:</label>
-        <input class="input">
+        <input class="input" v-model="searchTerm" @input="findProfile(searchTerm)">
       </div>
       <div class="buttons">
         <button @click="sortAsc">&#9650; </button>
@@ -12,28 +12,29 @@
       </div>
 
       <ProfileCard
-        v-for="(profile, index) in profiles"
-        :key="index"
-        :profile="profile"
+        v-for="profileId in filteredProfiles"
+        :key="profileId"
+        :profile="profiles[profileId]"
+        @add-comment="addComment"
         class="profile"
       />
     </div>
 
-    <div class="section">
-      <p class="header">Add new profile</p>
-      <div class="flex-row">
+    <div class="section add-profile-section">
+      <h1>Add New Profile</h1>
+      <div class="form-group">
         <label class="label">Name:</label>
-        <input class="input">
+        <input class="input" v-model="newProfile.name">
       </div>
-      <div class="flex-row">
-        <label class="label" for="filter">Email:</label>
-        <input class="input">
+      <div class="form-group">
+        <label class="label">Email:</label>
+        <input class="input" v-model="newProfile.email">
       </div>
-      <div class="flex-row">
+      <div class="form-group">
         <label class="label">Specialisation:</label>
-        <input class="input">
+        <input class="input" v-model="newProfile.description">
       </div>
-      <button>Add</button>
+      <button @click="addProfile">Add</button>
     </div>
   </div>
 </template>
@@ -50,43 +51,92 @@ export default {
 
   data() {
     return {
-      profiles: [
-        {
+      searchTerm: "",
+      profiles: {
+        1: {
           id: 1,
           name: "Wojciech",
           email: "wojciech@poz.pl",
           description: "Anaesthesiologist",
-          likes: 34
+          likes: 34,
+          comments: []
         },
-        {
+        2: {
           id: 2,
           name: "Maria",
           email: "maria@poz.pl",
           description: "Radiologist",
-          likes: 28
+          likes: 28,
+          comments: []
         },
-        {
+        3: {
           id: 3,
           name: "Anna",
           email: "anna@poz.pl",
           description: "Surgeon",
-          likes: 53
+          likes: 53,
+          comments: []
+        },
+        4: {
+          id: 4,
+          name: "Krzysztof",
+          email: "krzysztof@poz.pl",
+          description: "Cardiologist",
+          likes: 12,
+          comments: []
         }
-      ]
+      },
+      sortedProfileIds: [1, 2, 3, 4],
+      newProfile: {
+        name: "",
+        email: "",
+        description: ""
+      }
     };
   },
 
+  computed: {
+    filteredProfiles() {
+      if (this.searchTerm) {
+        return this.sortedProfileIds.filter(id =>
+          this.profiles[id].name.toLowerCase().includes(this.searchTerm.toLowerCase())
+        );
+      }
+      return this.sortedProfileIds;
+    }
+  },
+
   methods: {
+    findProfile(searchTerm) {
+      this.searchTerm = searchTerm;
+    },
+
     sortAsc() {
-      this.profiles.sort(function(a, b) {
-        return a.likes - b.likes;
-      });
+      this.sortedProfileIds.sort((a, b) => this.profiles[a].likes - this.profiles[b].likes);
     },
 
     sortDesc() {
-      this.profiles.sort(function(a, b) {
-        return b.likes - a.likes;
-      });
+      this.sortedProfileIds.sort((a, b) => this.profiles[b].likes - this.profiles[a].likes);
+    },
+
+    addProfile() {
+      if (this.newProfile.name && this.newProfile.email && this.newProfile.description) {
+        const newId = Math.max(...this.sortedProfileIds) + 1;
+        this.profiles[newId] = { 
+          id: newId, 
+          ...this.newProfile, 
+          likes: 0,
+          comments: []
+        };
+        this.sortedProfileIds.push(newId);
+        this.newProfile = { name: "", email: "", description: "" };
+      } else {
+        alert("All fields are required to add a new profile.");
+      }
+    },
+
+    addComment(profileId, comment) {
+      this.profiles[profileId].comments.push(comment);
     }
   }
 };
@@ -96,28 +146,37 @@ export default {
 #app {
   font-family: "Roboto", helvetica, arial, sans-serif;
   text-align: center;
-  color: white;
-  padding: 10px;
+  color: #333;
+  padding: 20px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   flex-direction: column;
   position: relative;
-  font-size: 1.5em;
+  font-size: 1em;
+  background-color: #f0f0f0;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 1em;
 }
 
 button {
   display: block;
-  padding: 1em;
+  padding: 0.5em 1em;
   width: 100%;
-  background-color: rgb(177,215,226);
-  border: 1px solid;
+  background-color: #4CAF50;
+  border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 0.5em;
+  font-size: 1em;
   font-weight: 600;
-  text-shadow: 0 1px 0 rgba(black, 0.2);
-  border-radius: 16px;
+  border-radius: 8px;
+}
+
+button:hover {
+  background-color: #45A049;
 }
 
 .content {
@@ -126,74 +185,65 @@ button {
 
 .section {
   width: 100%;
-  min-width: 300px;
+  max-width: 600px;
   padding: 2em;
-  margin-top: 30px;
-  position: relative;
-  background: rgba(22,72,99, 0.5);
+  margin: 1em auto;
+  background: #fff;
   border-radius: 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.section p {
-  margin-bottom: 0.5em;
+.profiles-section {
+  margin-bottom: 2em;
 }
 
-@media screen and (min-width: 600px) {
-  .section {
-    width: 50vw;
-    max-width: 15em;
-  }
-}
-
-.header {
-  color: #fff;
-}
-
-.flex-row {
+.search-bar {
   display: flex;
+  align-items: center;
   margin-bottom: 1em;
 }
 
 .label {
-  width: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-
-  background: rgb(177,215,226);
-  border-radius: 16px;
-  margin-right: 4px;
+  width: 100px;
+  text-align: right;
+  margin-right: 1em;
+  font-size: 1em;
+  color: #555;
 }
 
 .input {
   flex: 1;
-  padding: 1em;
-  border: 0;
-  color: #8f8f8f;
-  font-size: 1rem;
-  border-radius: 16px;
+  padding: 0.5em;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
 }
 
 .buttons {
   display: flex;
-  margin-top: 30px;
+  justify-content: center;
+  margin-top: 1em;
 }
 
 .buttons button:first-child {
-  margin-right: 4px;
+  margin-right: 1em;
 }
 
-.buttons button:last-child {
-  margin-left: 4px;
+.form-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
+.form-group .label {
+  width: 120px;
+}
+
+.form-group .input {
+  flex: 1;
 }
 
 .profile {
-  margin-top: 20px;
-}
-
-.icons-note {
-  margin-top: 30px;
-  font-size: 10px;
+  margin-top: 1em;
 }
 </style>
